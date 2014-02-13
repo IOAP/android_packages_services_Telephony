@@ -62,6 +62,7 @@
     <uses-permission android:name="android.permission.STATUS_BAR" />
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.WRITE_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.SEND_RESPOND_VIA_MESSAGE" />
     <uses-permission android:name="android.permission.SET_TIME_ZONE" />
@@ -538,6 +539,12 @@
                 android:exported="false">
         </activity>
 
+        <receiver android:name="RejectedSmsReceiver">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.SMS_REJECTED" />
+            </intent-filter>
+        </receiver>
+
         <receiver android:name="CallerInfoCacheUpdateReceiver">
             <intent-filter>
                 <action android:name="com.android.phone.UPDATE_CALLER_INFO_CACHE" />
@@ -562,6 +569,21 @@
 
         <!-- service to dump telephony information -->
         <service android:name="HfaService" android:exported="false"/>
+
+        <!-- TeloRadio Service -->
+        <service android:name=".TeloRadioService"
+        android:persistent="true"
+        android:process="com.android.phone"
+                android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.MAIN" />
+                <action android:name="com.android.internal.telephony.REQUEST_NETWORK_MODE" />
+                <action android:name="com.android.internal.telephony.MODIFY_NETWORK_MODE" />
+                <action android:name="com.android.phone.TeloRadioService" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </service>
 
     </application>
 
