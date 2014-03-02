@@ -205,6 +205,8 @@ public class CallFeaturesSetting extends PreferenceActivity
     private static final String SIP_SETTINGS_CATEGORY_KEY =
             "sip_settings_category_key";
 
+    private static final String BUTTON_NON_INTRUSIVE_INCALL_KEY = "button_non_intrusive_incall";
+
     private static final String FLIP_ACTION_KEY = "flip_action";
 
     private static final String SWITCH_ENABLE_FORWARD_LOOKUP =
@@ -307,6 +309,7 @@ public class CallFeaturesSetting extends PreferenceActivity
     private CheckBoxPreference mVoicemailNotificationVibrate;
     private SipSharedPreferences mSipSharedPreferences;
     private PreferenceScreen mButtonBlacklist;
+    private CheckBoxPreference mNonIntrusiveInCall;
     private ListPreference mFlipAction;
     private SwitchPreference mEnableForwardLookup;
     private SwitchPreference mEnableReverseLookup;
@@ -575,6 +578,10 @@ public class CallFeaturesSetting extends PreferenceActivity
                 // This should let the preference use default behavior in the xml.
                 return false;
             }
+        } else if (preference == mNonIntrusiveInCall){
+            Settings.System.putInt(getContentResolver(), Settings.System.NON_INTRUSIVE_INCALL,
+                    mNonIntrusiveInCall.isChecked() ? 1 : 0);
+            return true;
         }
         return false;
     }
@@ -605,8 +612,8 @@ public class CallFeaturesSetting extends PreferenceActivity
             handleTTYChange(preference, objValue);
         } else if (preference == mButtonCallUiInBackground) {
             Settings.System.putInt(mPhone.getContext().getContentResolver(),
-                    Settings.System.CALL_UI_IN_BACKGROUND,
-                    (Boolean) objValue ? 1 : 0);
+            Settings.System.CALL_UI_IN_BACKGROUND,
+            (Boolean) objValue ? 1 : 0);
         } else if (preference == mMwiNotification) {
             int mwi_notification = mMwiNotification.isChecked() ? 1 : 0;
             Settings.System.putInt(mPhone.getContext().getContentResolver(),
@@ -1606,8 +1613,7 @@ public class CallFeaturesSetting extends PreferenceActivity
         mButtonAutoRetry = (CheckBoxPreference) findPreference(BUTTON_RETRY_KEY);
         mButtonHAC = (CheckBoxPreference) findPreference(BUTTON_HAC_KEY);
         mButtonTTY = (ListPreference) findPreference(BUTTON_TTY_KEY);
-        mButtonCallUiInBackground =
-                (CheckBoxPreference) findPreference(BUTTON_CALL_UI_IN_BACKGROUND);
+        mButtonCallUiInBackground = (CheckBoxPreference) findPreference(BUTTON_CALL_UI_IN_BACKGROUND);
         mButtonNoiseSuppression = (CheckBoxPreference) findPreference(BUTTON_NOISE_SUPPRESSION_KEY);
         mVoicemailProviders = (ListPreference) findPreference(BUTTON_VOICEMAIL_PROVIDER_KEY);
         mButtonBlacklist = (PreferenceScreen) findPreference(BUTTON_BLACKLIST);
@@ -1677,14 +1683,6 @@ public class CallFeaturesSetting extends PreferenceActivity
             }
         }
 
-        if (mButtonCallUiInBackground != null) {
-            mButtonCallUiInBackground.setOnPreferenceChangeListener(this);
-        }
-
-        if (mFlipAction != null) {
-            mFlipAction.setOnPreferenceChangeListener(this);
-        }
-
         if (mButtonNoiseSuppression != null) {
             if (getResources().getBoolean(R.bool.has_in_call_noise_suppression)) {
                 mButtonNoiseSuppression.setOnPreferenceChangeListener(this);
@@ -1692,6 +1690,14 @@ public class CallFeaturesSetting extends PreferenceActivity
                 prefSet.removePreference(mButtonNoiseSuppression);
                 mButtonNoiseSuppression = null;
             }
+        }
+
+        if (mFlipAction != null) {
+            mFlipAction.setOnPreferenceChangeListener(this);
+        }
+
+        if (mButtonCallUiInBackground != null) {
+            mButtonCallUiInBackground.setOnPreferenceChangeListener(this);
         }
 
         if (!getResources().getBoolean(R.bool.world_phone)) {
@@ -1716,6 +1722,10 @@ public class CallFeaturesSetting extends PreferenceActivity
                 throw new IllegalStateException("Unexpected phone type: " + phoneType);
             }
         }
+
+        mNonIntrusiveInCall = (CheckBoxPreference) findPreference(BUTTON_NON_INTRUSIVE_INCALL_KEY);
+        mNonIntrusiveInCall.setChecked(Settings.System.getInt(getContentResolver(),
+                Settings.System.NON_INTRUSIVE_INCALL, 1) == 0 ? false : true);
 
         mEnableForwardLookup = (SwitchPreference)
                 findPreference(SWITCH_ENABLE_FORWARD_LOOKUP);
@@ -1933,7 +1943,7 @@ public class CallFeaturesSetting extends PreferenceActivity
 
         if (mButtonCallUiInBackground != null) {
             int callUiInBackground = Settings.System.getInt(getContentResolver(),
-                    Settings.System.CALL_UI_IN_BACKGROUND, 0);
+            Settings.System.CALL_UI_IN_BACKGROUND, 0);
             mButtonCallUiInBackground.setChecked(callUiInBackground != 0);
         }
 
