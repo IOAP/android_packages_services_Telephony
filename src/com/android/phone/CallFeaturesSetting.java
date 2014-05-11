@@ -1,7 +1,4 @@
 /*
- * Copyright (c) 2012, The Linux Foundation. All rights reserved.
- * Not a Contribution.
- *
  * Copyright (C) 2008 The Android Open Source Project
  * Blacklist - Copyright (C) 2013 The CyanogenMod Project
  *
@@ -54,7 +51,6 @@ import android.preference.PreferenceActivity;
 import android.preference.PreferenceGroup;
 import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
-import android.preference.SwitchPreference;
 import android.provider.ContactsContract.CommonDataKinds;
 import android.provider.MediaStore;
 import android.provider.Settings;
@@ -197,7 +193,7 @@ public class CallFeaturesSetting extends PreferenceActivity
     private static final String BUTTON_GSM_UMTS_OPTIONS = "button_gsm_more_expand_key";
     private static final String BUTTON_CDMA_OPTIONS = "button_cdma_more_expand_key";
 
-private static final String BUTTON_CALL_UI_IN_BACKGROUND = "bg_incall_screen";
+    private static final String BUTTON_CALL_UI_IN_BACKGROUND = "bg_incall_screen";
 
     private static final String VM_NUMBERS_SHARED_PREFERENCES_NAME = "vm_numbers";
 
@@ -214,10 +210,14 @@ private static final String BUTTON_CALL_UI_IN_BACKGROUND = "bg_incall_screen";
 
     private static final String SWITCH_ENABLE_FORWARD_LOOKUP =
             "switch_enable_forward_lookup";
+    private static final String SWITCH_ENABLE_PEOPLE_LOOKUP =
+            "switch_enable_people_lookup";
     private static final String SWITCH_ENABLE_REVERSE_LOOKUP =
             "switch_enable_reverse_lookup";
     private static final String BUTTON_CHOOSE_FORWARD_LOOKUP_PROVIDER =
             "button_choose_forward_lookup_provider";
+    private static final String BUTTON_CHOOSE_PEOPLE_LOOKUP_PROVIDER =
+            "button_choose_people_lookup_provider";
     private static final String BUTTON_CHOOSE_REVERSE_LOOKUP_PROVIDER =
             "button_choose_reverse_lookup_provider";
 
@@ -234,9 +234,6 @@ private static final String BUTTON_CALL_UI_IN_BACKGROUND = "bg_incall_screen";
     // preferred TTY mode
     // Phone.TTY_MODE_xxx
     static final int preferredTtyMode = Phone.TTY_MODE_OFF;
-
-    // dialog identifiers for TTY
-    private static final int TTY_SET_RESPONSE_ERROR = 800;
 
     public static final String HAC_KEY = "HACSetting";
     public static final String HAC_VAL_ON = "ON";
@@ -317,9 +314,11 @@ private static final String BUTTON_CALL_UI_IN_BACKGROUND = "bg_incall_screen";
     private PreferenceScreen mButtonBlacklist;
     private CheckBoxPreference mNonIntrusiveInCall;
     private ListPreference mFlipAction;
-    private SwitchPreference mEnableForwardLookup;
-    private SwitchPreference mEnableReverseLookup;
+    private CheckBoxPreference mEnableForwardLookup;
+    private CheckBoxPreference mEnablePeopleLookup;
+    private CheckBoxPreference mEnableReverseLookup;
     private ListPreference mChooseForwardLookupProvider;
+    private ListPreference mChoosePeopleLookupProvider;
     private ListPreference mChooseReverseLookupProvider;
 
     private class VoiceMailProvider {
@@ -536,10 +535,6 @@ private static final String BUTTON_CALL_UI_IN_BACKGROUND = "bg_incall_screen";
         } else if (preference == mButtonDTMF) {
             return true;
         } else if (preference == mButtonTTY) {
-            if (PhoneUtils.isImsVtCallPresent()) {
-                // TTY Mode change is not allowed during a VT call
-                showDialog(TTY_SET_RESPONSE_ERROR);
-            }
             return true;
         } else if (preference == mButtonCallUiInBackground) {
             return true;
@@ -620,8 +615,8 @@ private static final String BUTTON_CALL_UI_IN_BACKGROUND = "bg_incall_screen";
                     Settings.System.DTMF_TONE_TYPE_WHEN_DIALING, index);
         } else if (preference == mButtonTTY) {
             handleTTYChange(preference, objValue);
-} else if (preference == mButtonCallUiInBackground) {
-    Settings.System.putInt(mPhone.getContext().getContentResolver(),
+        } else if (preference == mButtonCallUiInBackground) {
+            Settings.System.putInt(mPhone.getContext().getContentResolver(),
             Settings.System.CALL_UI_IN_BACKGROUND,
             (Boolean) objValue ? 1 : 0);
         } else if (preference == mMwiNotification) {
@@ -669,9 +664,11 @@ private static final String BUTTON_CALL_UI_IN_BACKGROUND = "bg_incall_screen";
                 Settings.System.CALL_FLIP_ACTION_KEY, index);
             updateFlipActionSummary(index);
         } else if (preference == mEnableForwardLookup
+                || preference == mEnablePeopleLookup
                 || preference == mEnableReverseLookup) {
             saveLookupProviderSwitches(preference, (Boolean) objValue);
         } else if (preference == mChooseForwardLookupProvider
+                || preference == mChoosePeopleLookupProvider
                 || preference == mChooseReverseLookupProvider) {
             saveLookupProviders(preference, (String) objValue);
         }
@@ -1512,22 +1509,8 @@ private static final String BUTTON_CALL_UI_IN_BACKGROUND = "bg_incall_screen";
                     (id == VOICEMAIL_REVERTING_DIALOG ? R.string.reverting_settings :
                     R.string.reading_settings)));
             return dialog;
-        } else if (id == TTY_SET_RESPONSE_ERROR) {
-
-            AlertDialog.Builder b = new AlertDialog.Builder(this);
-
-            b.setTitle(getText(R.string.tty_mode_option_title));
-            b.setMessage(getText(R.string.tty_mode_not_allowed_vt_call));
-            b.setIconAttribute(android.R.attr.alertDialogIcon);
-            b.setPositiveButton(R.string.ok, this);
-            b.setCancelable(false);
-            AlertDialog dialog = b.create();
-
-            // make the dialog more obvious by bluring the background.
-            dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND);
-
-            return dialog;
         }
+
 
         return null;
     }
@@ -1637,8 +1620,7 @@ private static final String BUTTON_CALL_UI_IN_BACKGROUND = "bg_incall_screen";
         mButtonAutoRetry = (CheckBoxPreference) findPreference(BUTTON_RETRY_KEY);
         mButtonHAC = (CheckBoxPreference) findPreference(BUTTON_HAC_KEY);
         mButtonTTY = (ListPreference) findPreference(BUTTON_TTY_KEY);
-mButtonCallUiInBackground =
-        (CheckBoxPreference) findPreference(BUTTON_CALL_UI_IN_BACKGROUND);
+        mButtonCallUiInBackground = (CheckBoxPreference) findPreference(BUTTON_CALL_UI_IN_BACKGROUND);
         mButtonNoiseSuppression = (CheckBoxPreference) findPreference(BUTTON_NOISE_SUPPRESSION_KEY);
         mVoicemailProviders = (ListPreference) findPreference(BUTTON_VOICEMAIL_PROVIDER_KEY);
         mButtonBlacklist = (PreferenceScreen) findPreference(BUTTON_BLACKLIST);
@@ -1721,9 +1703,9 @@ mButtonCallUiInBackground =
             mFlipAction.setOnPreferenceChangeListener(this);
         }
 
-if (mButtonCallUiInBackground != null) {
-    mButtonCallUiInBackground.setOnPreferenceChangeListener(this);
-  }
+        if (mButtonCallUiInBackground != null) {
+            mButtonCallUiInBackground.setOnPreferenceChangeListener(this);
+        }
 
         if (!getResources().getBoolean(R.bool.world_phone)) {
             Preference options = prefSet.findPreference(BUTTON_CDMA_OPTIONS);
@@ -1752,25 +1734,30 @@ if (mButtonCallUiInBackground != null) {
         mNonIntrusiveInCall.setChecked(Settings.System.getInt(getContentResolver(),
                 Settings.System.NON_INTRUSIVE_INCALL, 1) == 0 ? false : true);
 
-        mEnableForwardLookup = (SwitchPreference)
+        mEnableForwardLookup = (CheckBoxPreference)
                 findPreference(SWITCH_ENABLE_FORWARD_LOOKUP);
-        mEnableReverseLookup = (SwitchPreference)
+        mEnablePeopleLookup = (CheckBoxPreference)
+                findPreference(SWITCH_ENABLE_PEOPLE_LOOKUP);
+        mEnableReverseLookup = (CheckBoxPreference)
                 findPreference(SWITCH_ENABLE_REVERSE_LOOKUP);
 
         mEnableForwardLookup.setOnPreferenceChangeListener(this);
+        mEnablePeopleLookup.setOnPreferenceChangeListener(this);
         mEnableReverseLookup.setOnPreferenceChangeListener(this);
 
         restoreLookupProviderSwitches();
 
         mChooseForwardLookupProvider = (ListPreference)
                 findPreference(BUTTON_CHOOSE_FORWARD_LOOKUP_PROVIDER);
+        mChoosePeopleLookupProvider = (ListPreference)
+                findPreference(BUTTON_CHOOSE_PEOPLE_LOOKUP_PROVIDER);
         mChooseReverseLookupProvider = (ListPreference)
                 findPreference(BUTTON_CHOOSE_REVERSE_LOOKUP_PROVIDER);
 
         mChooseForwardLookupProvider.setOnPreferenceChangeListener(this);
+        mChoosePeopleLookupProvider.setOnPreferenceChangeListener(this);
         mChooseReverseLookupProvider.setOnPreferenceChangeListener(this);
 
-        initLookupProviders();
         restoreLookupProviders();
 
         // create intent to bring up contact list
@@ -1800,7 +1787,6 @@ if (mButtonCallUiInBackground != null) {
         updateVoiceNumberField();
         mVMProviderSettingsForced = false;
         createSipCallSettings();
-        createImsSettings();
 
         mRingtoneLookupRunnable = new Runnable() {
             @Override
@@ -1899,10 +1885,6 @@ if (mButtonCallUiInBackground != null) {
         }
     }
 
-    private void createImsSettings() {
-        addPreferencesFromResource(R.xml.ims_settings_category);
-    }
-
     // Gets the call options for SIP depending on whether SIP is allowed only
     // on Wi-Fi only; also make the other options preference invisible.
     private ListPreference getSipCallOptionPreference() {
@@ -1971,11 +1953,11 @@ if (mButtonCallUiInBackground != null) {
             updatePreferredTtyModeSummary(settingsTtyMode);
         }
 
-if (mButtonCallUiInBackground != null) {
-    int callUiInBackground = Settings.System.getInt(getContentResolver(),
+        if (mButtonCallUiInBackground != null) {
+            int callUiInBackground = Settings.System.getInt(getContentResolver(),
             Settings.System.CALL_UI_IN_BACKGROUND, 0);
-    mButtonCallUiInBackground.setChecked(callUiInBackground != 0);
-   }
+            mButtonCallUiInBackground.setChecked(callUiInBackground != 0);
+        }
 
         if (mFlipAction != null) {
             int flipAction = Settings.System.getInt(getContentResolver(),
@@ -2155,52 +2137,15 @@ if (mButtonCallUiInBackground != null) {
             Settings.System.putInt(getContentResolver(),
                     Settings.System.ENABLE_FORWARD_LOOKUP,
                     newValue ? 1 : 0);
+        } else if (pref == mEnablePeopleLookup) {
+            Settings.System.putInt(getContentResolver(),
+                    Settings.System.ENABLE_PEOPLE_LOOKUP,
+                    newValue ? 1 : 0);
         } else if (pref == mEnableReverseLookup) {
             Settings.System.putInt(getContentResolver(),
                     Settings.System.ENABLE_REVERSE_LOOKUP,
                     newValue ? 1 : 0);
         }
-    }
-
-    private void initLookupProviders() {
-        if (DBG) log("initLookupProviders()");
-
-        String[] fEntries = getApplicationContext().getResources()
-                .getStringArray(R.array.forward_lookup_provider_names);
-        String[] fEntryValues = getApplicationContext().getResources()
-                .getStringArray(R.array.forward_lookup_providers);
-
-        String[] rEntries = getApplicationContext().getResources()
-                .getStringArray(R.array.reverse_lookup_provider_names);
-        String[] rEntryValues = getApplicationContext().getResources()
-                .getStringArray(R.array.reverse_lookup_providers);
-
-        if (!isGmsInstalled(getApplicationContext())) {
-            if (DBG) log("Google Play Services is NOT installed");
-
-            List<String> listRNames = new ArrayList<String>(
-                    Arrays.asList(rEntries));
-            List<String> listRValues = new ArrayList<String>(
-                    Arrays.asList(rEntryValues));
-
-            int index = listRValues.indexOf("Google");
-
-            if (index != -1) {
-                if (DBG) log("Removing Google from the reverse lookup providers");
-
-                listRNames.remove(index);
-                listRValues.remove(index);
-            }
-
-            rEntries = listRNames.toArray(new String[0]);
-            rEntryValues = listRValues.toArray(new String[0]);
-        }
-
-        mChooseReverseLookupProvider.setEntries(rEntries);
-        mChooseReverseLookupProvider.setEntryValues(rEntryValues);
-
-        mChooseForwardLookupProvider.setEntries(fEntries);
-        mChooseForwardLookupProvider.setEntryValues(fEntryValues);
     }
 
     private void restoreLookupProviderSwitches() {
@@ -2209,6 +2154,9 @@ if (mButtonCallUiInBackground != null) {
         mEnableForwardLookup.setChecked(Settings.System.getInt(
                 getContentResolver(),
                 Settings.System.ENABLE_FORWARD_LOOKUP, 1) != 0 ? true : false);
+        mEnablePeopleLookup.setChecked(Settings.System.getInt(
+                getContentResolver(),
+                Settings.System.ENABLE_PEOPLE_LOOKUP, 1) != 0 ? true : false);
         mEnableReverseLookup.setChecked(Settings.System.getInt(
                 getContentResolver(),
                 Settings.System.ENABLE_REVERSE_LOOKUP, 1) != 0 ? true : false);
@@ -2227,6 +2175,18 @@ if (mButtonCallUiInBackground != null) {
                     (String) mChooseForwardLookupProvider.getEntryValues()[0]);
         } else {
             mChooseForwardLookupProvider.setValue(fProvider);
+        }
+
+        String pProvider = Settings.System.getString(
+                getContentResolver(),
+                Settings.System.PEOPLE_LOOKUP_PROVIDER);
+
+        if (pProvider == null) {
+            mChoosePeopleLookupProvider.setValueIndex(0);
+            saveLookupProviders(mChoosePeopleLookupProvider,
+                    (String) mChoosePeopleLookupProvider.getEntryValues()[0]);
+        } else {
+            mChoosePeopleLookupProvider.setValue(pProvider);
         }
 
         String rProvider = Settings.System.getString(
@@ -2250,23 +2210,17 @@ if (mButtonCallUiInBackground != null) {
                     getContentResolver(),
                     Settings.System.FORWARD_LOOKUP_PROVIDER,
                     newValue);
+        } else if (pref == mChoosePeopleLookupProvider) {
+            Settings.System.putString(
+                    getContentResolver(),
+                    Settings.System.PEOPLE_LOOKUP_PROVIDER,
+                    newValue);
         } else if (pref == mChooseReverseLookupProvider) {
             Settings.System.putString(
                     getContentResolver(),
                     Settings.System.REVERSE_LOOKUP_PROVIDER,
                     newValue);
         }
-    }
-
-    private static boolean isGmsInstalled(Context context) {
-        PackageManager pm = context.getPackageManager();
-        List<PackageInfo> packages = pm.getInstalledPackages(0);
-        for (PackageInfo info : packages) {
-            if (info.packageName.equals("com.google.android.gms")) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
